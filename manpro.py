@@ -59,7 +59,14 @@ with st.sidebar.expander("💰 Economic & PSC Terms", expanded=False):
     ftp_rate = st.number_input("FTP (%)", value=20.0, step=1.0) / 100
     tax_rate = st.number_input("Corporate Tax (%)", value=44.0, step=1.0) / 100
     gov_split_after_tax = st.number_input("Gov After-Tax Split (%)", value=85.0, step=1.0) / 100
-    dmo_fee_rate = st.number_input("DMO Fee (%)", value=25.0, step=1.0) / 100
+    
+    # --- FITUR BARU: Input DMO Holiday ---
+    st.markdown("**Domestic Market Obligation (DMO)**")
+    dmo_volume_rate = st.number_input("DMO Volume Obligation (%)", value=25.0, step=1.0) / 100
+    dmo_fee_rate = st.number_input("DMO Fee Rate (%)", value=25.0, step=1.0) / 100
+    dmo_holiday_years = st.number_input("DMO Holiday Duration (Years)", value=5, step=1)
+    # --------------------------------------
+    
     discount_rate = st.number_input("Discount Rate for NPV (%)", value=10.0, step=1.0) / 100
     
     ctr_split_after_tax = 1 - gov_split_after_tax
@@ -171,12 +178,26 @@ def run_psc_model(override_oil_price=None):
     gov_equity = ets * gov_split_before_tax
     ctr_equity = ets * ctr_split_before_tax
 
-    dmo_gross = np.where(prod_mstb > 0, gross_revenue * ctr_split_before_tax * 0.25, 0)
-    if prod_start_year < total_years:
-        dmo_gross[prod_start_year] = 0  
-        
-    dmo_fee = dmo_gross * dmo_fee_rate
+    # --- FITUR BARU: Logika DMO Holiday & Kosong di Tahun Pertama ---
+    dmo_gross = np.zeros(total_years)
+    dmo_fee = np.zeros(total_years)
+
+    for i in range(total_years):
+        if prod_mstb[i] > 0:
+            prod_year = i - prod_start_year + 1 # Hitung tahun ke-berapa produksi
+            
+            if prod_year == 1:
+                dmo_gross[i] = 0
+                dmo_fee[i] = 0
+            elif prod_year <= dmo_holiday_years:
+                dmo_gross[i] = gross_revenue[i] * ctr_split_before_tax * dmo_volume_rate
+                dmo_fee[i] = dmo_gross[i] # Penalty = 0 selama masa holiday
+            else:
+                dmo_gross[i] = gross_revenue[i] * ctr_split_before_tax * dmo_volume_rate
+                dmo_fee[i] = dmo_gross[i] * dmo_fee_rate
+                
     dmo_penalty = dmo_gross - dmo_fee
+    # ----------------------------------------------------------------
 
     net_ctr_share = np.where(prod_mstb > 0, ctr_ftp + ctr_equity - dmo_penalty, 0)
     taxable_income = np.maximum(0, net_ctr_share)
@@ -249,7 +270,6 @@ for y, val in enumerate(cumulative_cf):
 # ==========================================
 # 5. TABBED USER INTERFACE
 # ==========================================
-# MENAMBAHKAN TAB "ABOUT"
 tab1, tab2, tab3, tab4 = st.tabs(["📊 Dashboard & Charts", "📑 Economic Tables", "📈 Sensitivity Analysis", "ℹ️ About PSChi"])
 
 # ------------------------------------------
@@ -332,7 +352,6 @@ with tab1:
         )])
         fig_pie.update_layout(title="Proporsi Pembagian Total Pendapatan", template='plotly_white')
         st.plotly_chart(fig_pie, use_container_width=True)
-
 
 # ------------------------------------------
 # TAB 2: DATA & TABLES
@@ -434,7 +453,6 @@ with tab2:
     csv_detailed = df_det_full.to_csv(index=False).encode('utf-8')
     st.download_button("⬇️ Download Detail (CSV)", csv_detailed, "PSChi_Detailed_Full.csv", "text/csv")
 
-
 # ------------------------------------------
 # TAB 3: SENSITIVITY ANALYSIS
 # ------------------------------------------
@@ -484,7 +502,7 @@ with tab3:
 # TAB 4: ABOUT PSChi
 # ------------------------------------------
 with tab4:
-    st.markdown("### ℹ️ Tentang PSChi (Version 1.0)")
+    st.markdown("### ℹ️ Tentang PSChi (Version 1.0.1)")
     st.markdown("""
     **PSChi** adalah platform simulasi interaktif untuk memodelkan keekonomian *Production Sharing Contract* (PSC) Cost Recovery. 
     Aplikasi ini dikembangkan sebagai pemenuhan tugas mata kuliah **TM3203 Manajemen dan Keekonomian Proyek** di **Program Studi Teknik Perminyakan ITB**.
@@ -505,8 +523,8 @@ with tab4:
     st.info("""
     - Menggunakan skema **PSC Cost Recovery standar Indonesia**.
     - Depresiasi Capital Tangible dihitung menggunakan metode **Declining Balance**.
-    - *Domestic Market Obligation* (DMO) dikalkulasi sebesar 25% dari Contractor Share Gross Revenue.
-    - Pada model ini, DMO diatur efektif mulai tahun kedua produksi (Dikosongkan pada tahun pertama lifting) sesuai dengan penyesuaian arus kas proyek awal.
+    - *Domestic Market Obligation* (DMO) dikalkulasi sebesar porsi volume (contoh: 25%) dari Contractor Share Gross Revenue.
+    - Model DMO diatur presisi: Dikosongkan pada tahun pertama lifting, menerapkan *DMO Holiday* dengan *penalty* 0% (DMO Fee = DMO Gross) selama durasi yang ditentukan (misal 5 tahun), kemudian beralih ke tarif DMO efektif.
     """)
     
     st.markdown("#### 📧 Hubungi Kami:")
@@ -522,6 +540,6 @@ st.markdown("""
     <strong>Disclaimer:</strong> Hasil yang ditampilkan oleh simulator ini merupakan estimasi akademis dan simulasi analisis awal. 
     Angka-angka ini tidak dapat dijadikan landasan mutlak untuk keputusan investasi finansial final. 
     <br><br>
-    Copyright © 2026 <strong>Kelompok 16 - Teknik Perminyakan ITB</strong> | PSChi v1.0
+    Copyright © 2026 <strong>Kelompok 16 - Teknik Perminyakan ITB</strong> | PSChi v1.0.1
 </div>
 """, unsafe_allow_html=True)
