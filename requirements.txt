@@ -3,4 +3,5 @@ pandas
 numpy
 plotly
 numpy-financial
-pillow
+Pillow
+yfinance
