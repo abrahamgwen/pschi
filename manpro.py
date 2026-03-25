@@ -136,7 +136,7 @@ with st.sidebar.expander("💰 Economic & PSC Terms", expanded=False):
     """)
 
 with st.sidebar.expander("📉 Depreciation Rules", expanded=False):
-    dep_group = st.selectbox("Tangible Depreciation Group", ["Group 1 (50%)", "Group 2 (25%)", "Group 3 (12.5%)"], index=1)
+    dep_group = st.selectbox("Tangible Depreciation Group", ["Group 1 (50%)", "Group 2 (25%)", "Group 3 (12.5%)"], index=0)
     dep_years = st.number_input("Target Depreciation (Years)", value=1, min_value=1, step=1) 
 
 # ==========================================
