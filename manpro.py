@@ -306,8 +306,6 @@ def run_psc_model(override_oil_price=None, capex_mult=1.0):
 with st.spinner('Menjalankan Simulasi Keekonomian PSC...'):
     results = run_psc_model()
 
-st.toast('Kalkulasi berhasil diperbarui!', icon='✅')
-
 # ==========================================
 # 4. AGREGASI & INDIKATOR UTAMA
 # ==========================================
