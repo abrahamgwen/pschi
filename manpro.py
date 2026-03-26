@@ -303,9 +303,6 @@ def run_psc_model(override_oil_price=None, capex_mult=1.0):
         'total_years': total_years
     }
 
-with st.spinner('Menjalankan Simulasi Keekonomian PSC...'):
-    results = run_psc_model()
-
 # ==========================================
 # 4. AGREGASI & INDIKATOR UTAMA
 # ==========================================
